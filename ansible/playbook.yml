@@ -1,0 +1,53 @@
+- name: Deploy MERN Backend App
+  hosts: mern
+  become: yes
+
+  vars:
+    app_directory: /home/ubuntu/blog-app-MERN/backend
+    mongo_url: 
+    aws_access_key: mongodb+srv://test:qazqwe123@mongodb.txkjsso.mongodb.net/blog-app
+    aws_secret_key: 
+    bucket_name: mern-media-joud-2025
+
+  tasks:
+    - name: Install Node.js and npm
+      apt:
+        name:
+          - nodejs
+          - npm
+        state: present
+        update_cache: yes
+
+    - name: Install pm2 globally
+      npm:
+        name: pm2
+        global: yes
+
+    - name: Ensure logs directory exists
+      file:
+        path: "{{ app_directory }}/logs"
+        state: directory
+        mode: '0755'
+
+    - name: Create .env file
+      copy:
+        dest: "{{ app_directory }}/.env"
+        content: |
+          PORT=5000
+          MONGODB_URL={{ mongo_url }}
+          AWS_ACCESS_KEY_ID={{ aws_access_key }}
+          AWS_SECRET_ACCESS_KEY={{ aws_secret_key }}
+          AWS_BUCKET_NAME={{ bucket_name }}
+
+    - name: Install backend dependencies
+      npm:
+        path: "{{ app_directory }}"
+        production: no
+
+    - name: Start backend app with pm2
+      command: pm2 start index.js --name blog-backend
+      args:
+        chdir: "{{ app_directory }}"
+
+    - name: Save pm2 process list
+      command: pm2 save
